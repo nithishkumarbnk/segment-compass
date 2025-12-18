@@ -58,7 +58,7 @@ ui/
 scripts/
 
 # Ignore custom ignore file
-.ignore.txt
+ignore.txt
 
 # --- IMPORTANT ---
 # Do NOT ignore the models folder if you want the app to work 
