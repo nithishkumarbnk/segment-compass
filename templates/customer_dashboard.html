@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Customer - Segment Compass</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <style>
+      /* Fix: Active link styling to prevent syntax errors */
+      .subnav a.active {
+        color: #ff9900 !important;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body class="shop-body">
+    <div class="nav-belt">
+      <div style="font-size: 1.5rem; font-weight: 700">
+        Segment<span style="color: #6366f1">Compass</span>
+      </div>
+      <div class="nav-search">
+        <input type="text" placeholder="Search Product" />
+        <button>🔍</button>
+      </div>
+      <div style="display: flex; gap: 20px; font-size: 0.85rem">
+        <div>Hello, {{ display_name }}<br /><b>Account</b></div>
+        <a href="/cart" style="display: flex; align-items: center">
+          <span style="font-size: 1.6rem; margin-right: 5px">🛒</span>
+          <span style="color: #f08804; font-weight: 700; font-size: 1rem"
+            >{{ cart_count }}</span
+          >
+        </a>
+        <a
+          href="/logout"
+          style="
+            align-self: center;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 4px;
+          "
+          >Logout</a
+        >
+      </div>
+    </div>
+
+    <div class="subnav">
+      <a
+        href="?category=All"
+        class="{{ 'active' if current_category == 'All' else '' }}"
+        >☰ All</a
+      >
+
+      {% for cat in categories %} {% if cat != 'All' %}
+      <a
+        href="?category={{ cat }}"
+        class="{{ 'active' if cat == current_category else '' }}"
+        >{{ cat }}</a
+      >
+      {% endif %} {% endfor %}
+    </div>
+
+    <div class="shop-container">
+      <div class="shop-sidebar">
+        <h4 style="margin-bottom: 10px">User Profile</h4>
+        <div
+          style="
+            background: #f0f2f2;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+          "
+        >
+          <form action="/switch_user" method="POST">
+            <input
+              type="number"
+              name="customer_id"
+              placeholder="Switch ID"
+              required
+              style="width: 100%; padding: 5px; margin-bottom: 5px"
+            />
+            <button
+              type="submit"
+              style="
+                width: 100%;
+                padding: 5px;
+                cursor: pointer;
+                background: #ddd;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+              "
+            >
+              Switch
+            </button>
+          </form>
+          <div style="margin-top: 10px">
+            Status: <strong>{{ user['tier'] }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex: 1">
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <div class="alert">{{ messages[0] }}</div>
+        {% endif %} {% endwith %} {% if recommendations %}
+        <h3 style="margin-bottom: 15px">
+          ✨ Recommended for {{ user['tier'] }}
+        </h3>
+        <div class="product-grid" style="margin-bottom: 40px">
+          {% for p in recommendations %}
+          <div class="p-card">
+            <img src="{{ p['image_url'] }}" class="p-img" />
+            <div class="p-title">{{ p['product_name'] }}</div>
+            <div class="p-price">₹{{ p['price'] }}</div>
+            <div style="color: #00a8e1; font-size: 0.8rem; margin-bottom: 10px">
+              ✓Value for Money
+            </div>
+            <a
+              href="/add_to_cart/{{ p['product_id'] }}?current_cat={{ current_category }}"
+              class="btn-atc"
+              >Add to Cart</a
+            >
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+          "
+        >
+          <h3 style="margin: 0">Results for {{ current_category }}</h3>
+          <div style="font-size: 0.9rem; color: #565959">
+            {% if total_products|default(0) > 0 %} {% set start =
+            (current_page|default(1) - 1) * per_page|default(10) + 1 %} {% set
+            end = start + products|length - 1 %} Showing
+            <strong>{{ start }}-{{ end }}</strong> of
+            <strong>{{ total_products }}</strong>
+            {% else %} No products found {% endif %}
+          </div>
+        </div>
+
+        <div class="product-grid">
+          {% for p in products %}
+          <div class="p-card">
+            <img src="{{ p['image_url'] }}" class="p-img" />
+            <div class="p-title">{{ p['product_name'] }}</div>
+            <div style="color: #de7921; font-size: 0.8rem; margin-bottom: 5px">
+              ★★★★☆
+            </div>
+            <div class="p-price">₹{{ p['price'] }}</div>
+            {% if user['tier'] in ['Gold', 'Platinum'] %}
+            <div style="color: #00a8e1; font-size: 0.8rem; margin-bottom: 10px">
+              ✓prime
+            </div>
+            {% endif %}
+            <a
+              href="/add_to_cart/{{ p['product_id'] }}?current_cat={{ current_category }}"
+              class="btn-atc"
+              >Add to Cart</a
+            >
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if total_pages|default(1) > 1 %}
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+          "
+        >
+          {% if current_page|default(1) > 1 %}
+          <a
+            href="?category={{ current_category }}&page={{ current_page - 1 }}"
+            class="btn-atc"
+            style="width: auto; padding: 10px 20px"
+            >← Previous</a
+          >
+          {% endif %} {% if current_page|default(1) < total_pages %}
+          <a
+            href="?category={{ current_category }}&page={{ current_page + 1 }}"
+            class="btn-atc"
+            style="width: auto; padding: 10px 20px"
+            >Next →</a
+          >
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  # 1. The Flask Application
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      # Connects to the 'mongo' service defined below
+      - MONGO_URI=mongodb://mongo:27017/segment_compass
+      - FLASK_DEBUG=1
+    depends_on:
+      - mongo
+    volumes:
+      # Syncs your local folder to the container for live editing
+      - .:/app
+
+  # 2. The Database
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

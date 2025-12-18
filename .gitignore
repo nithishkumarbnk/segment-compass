@@ -1,0 +1,67 @@
+# ==========================
+# Python / Flask
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+instance/
+.webassets-cache
+.pytest_cache/
+
+# ==========================
+# Virtual Environments
+# ==========================
+venv/
+.venv/
+env/
+.env_folder/
+
+# ==========================
+# Environment Variables (CRITICAL)
+# ==========================
+.env
+.env.local
+.flaskenv
+
+# ==========================
+# IDEs / Editors
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==========================
+# OS Specific
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Docker
+# ==========================
+docker-compose.override.yml
+
+# ==========================
+# Logs
+# ==========================
+*.log
+
+# ==========================
+# Custom / Project Specific
+# ==========================
+
+# Ignore design assets or temp UI files (Keep this if it's just design files)
+ui/
+
+# Ignore local utility scripts
+scripts/
+
+# Ignore custom ignore file
+.ignore.txt
+
+# --- IMPORTANT ---
+# Do NOT ignore the models folder if you want the app to work 
+# for others when they clone it.
+# Only uncomment the line below if rf_model.pkl is >100MB.
+#models/

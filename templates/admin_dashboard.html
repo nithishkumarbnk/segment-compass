@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Console - Segment Compass</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-layout">
+    
+    <div class="adm-sidebar">
+        <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 30px;">Segment<span style="color: #6366f1;">Compass</span></div>
+        
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: #6B7280; margin-bottom: 8px;">Context</div>
+            <form action="/admin" method="GET">
+                <select name="customer_id" onchange="this.form.submit()" style="width: 100%; padding: 8px; border-radius: 4px;">
+                    {% for c in customers %}
+                    <option value="{{ c['customer_id'] }}" {% if c['customer_id'] == current_id %}selected{% endif %}>{{ c['name'] }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="section" value="{{ section }}">
+            </form>
+        </div>
+
+        <div>
+            {% set base = "/admin?customer_id=" ~ current_id %}
+            <a href="{{ base }}&section=Snapshot" class="menu-item {{ 'active' if section == 'Snapshot' }}">📊 Snapshot</a>
+            <a href="{{ base }}&section=Events" class="menu-item {{ 'active' if section == 'Events' }}">📜 Events Log</a>
+            <a href="{{ base }}&section=LRFMS" class="menu-item {{ 'active' if section == 'LRFMS' }}">📐 LRFMS Metrics</a>
+            <a href="{{ base }}&section=Journey" class="menu-item {{ 'active' if section == 'Journey' }}">🗺️ Journey Map</a>
+            <a href="{{ base }}&section=Simulation" class="menu-item {{ 'active' if section == 'Simulation' }}">🔮 Simulator</a>
+        </div>
+
+        <div style="margin-top: auto;">
+            <form action="/admin/add_customer" method="POST" style="background: #1f2937; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                <input type="text" name="name" placeholder="Name" required style="width: 100%; margin-bottom: 5px; padding: 5px; border-radius: 4px;">
+                <input type="email" name="email" placeholder="Email" required style="width: 100%; margin-bottom: 8px; padding: 5px; border-radius: 4px;">
+                <button type="submit" style="width: 100%; padding: 5px; border-radius: 4px; cursor: pointer;">+ Add User</button>
+            </form>
+            <a href="/logout" style="color: #EF4444; display: block; text-align: center; font-size: 0.9rem;">Logout</a>
+        </div>
+    </div>
+
+    <div class="adm-main">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h1 style="margin: 0;">{{ cust['name'] }}</h1>
+                <p style="color: #6B7280; margin: 0;">{{ cust['email'] }} • ID: {{ cust['customer_id'] }}</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="/admin/recompute/{{ current_id }}" class="btn-primary" style="background: #10B981; font-size: 0.8rem; padding: 8px 12px;">↻ Refresh Metrics</a>
+                <span style="background: #E0E7FF; color: #4338CA; padding: 8px 15px; border-radius: 20px; font-weight: 700;">{{ data['tier'] }} Tier</span>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}<div class="alert" style="position: static; margin-bottom: 20px;">{{ messages[0] }}</div>{% endif %}
+        {% endwith %}
+
+        {% if section == 'Snapshot' %}
+        <div class="card-grid">
+            <div class="stat-card">
+                <div class="stat-label">Current Tier</div>
+                <div class="stat-value text-indigo">{{ data['tier'] }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Risk Status</div>
+                <div class="stat-value {{ 'text-red' if data['risk'] == 'High Risk' else 'text-green' }}">
+                    {{ data['risk'] }}
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Stability Score</div>
+                <div class="stat-value">{{ "%.2f"|format(data['stability']) }}</div>
+            </div>
+        </div>
+        
+        <h3>Trigger Pipeline Status</h3>
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 10px; border: 1px solid #e5e7eb;">
+            <p><strong>Active Rules:</strong></p>
+            <ul style="list-style: none; padding: 0;">
+                {% if events|length == 1 %} 
+                    <li class="text-green">✅ First Purchase Bonus Active</li>
+                {% elif events|length > 0 and events|length % 5 == 0 %} 
+                    <li class="text-green">✅ Frequency Milestone (Every 5th Order)</li>
+                {% else %} 
+                    <li style="color:gray">⚪ No active triggers this session</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="stat-card" style="margin-top: 20px; padding: 25px;">
+            <h3 style="margin-top: 0; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">
+                🧠 Metric Definitions & Logic
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; box-shadow: none; border-radius: 0;">
+                <thead>
+                    <tr style="background: #f9fafb; text-align: left;">
+                        <th style="padding: 12px; width: 15%;">Metric</th>
+                        <th style="padding: 12px; width: 35%;">Definition</th>
+                        <th style="padding: 12px;">Logic / Formula</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Current Tier</td>
+                        <td style="padding: 12px;">The customer's business segment.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            AI Prediction (Random Forest) based on L,R,F,M,S vector.
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Risk Status</td>
+                        <td style="padding: 12px;">Likelihood of churn or degradation.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            High Risk (New/Bronze) | Medium (Silver) | Low (Gold/Platinum)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Stability</td>
+                        <td style="padding: 12px;">Behavioral consistency score (0-1).</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            0.3 (New/Bronze) | 0.5 (Silver) | 0.8 (Gold/Platinum)
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; color: #6B7280; font-size: 0.9rem;">
+                * <strong>Note:</strong> Risk and Stability are currently heuristics derived from the AI-assigned Tier to provide immediate context.
+            </p>
+        </div>
+        {% endif %}
+
+        {% if section == 'Events' %}
+        <div class="stat-card">
+            <h3>Recent Activity</h3>
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Event</th>
+                    <th>Item</th>
+                    <th>Value</th>
+                </tr>
+                {% for e in events %}
+                <tr>
+                    <td>{{ e['event_time'].strftime('%b %d, %H:%M') }}</td>
+                    <td><span style="background: #F3F4F6; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;">{{ e['event_type'] }}</span></td>
+                    <td style="font-family: monospace;">{{ e['product_id'] }}</td>
+                    <td style="font-weight: bold;">₹{{ e['price'] }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align: center; color: #999;">No events found.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {% if section == 'LRFMS' %}
+        <div class="card-grid" style="grid-template-columns: repeat(5, 1fr);">
+            {% for k in ['L', 'R', 'F', 'M', 'S'] %}
+            <div class="stat-card" style="text-align: center;">
+                <div class="stat-label" style="margin-bottom: 10px; font-size: 1.2rem;">{{ k }}</div>
+                <div class="stat-value" style="font-size: 1.5rem;">
+                    {{ "%.2f"|format(data['lrfms'][k]) if data['lrfms'][k] is number else 0 }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="stat-card" style="margin-top: 20px; padding: 25px;">
+            <h3 style="margin-top: 0; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">
+                📐 Metric Definitions & Logic
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; box-shadow: none; border-radius: 0;">
+                <thead>
+                    <tr style="background: #f9fafb; text-align: left;">
+                        <th style="padding: 12px; width: 10%;">Metric</th>
+                        <th style="padding: 12px; width: 30%;">Definition</th>
+                        <th style="padding: 12px;">Calculation / Formula</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">L</td>
+                        <td style="padding: 12px;">Length of Relationship</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">Days between First Purchase and Last Purchase</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">R</td>
+                        <td style="padding: 12px;">Recency</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">Days since the Last Purchase (Now - Last Event)</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">F</td>
+                        <td style="padding: 12px;">Frequency</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">Total Count of Purchase Events</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">M</td>
+                        <td style="padding: 12px;">Monetary</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">Sum of Price for all Purchases (Total Spend)</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">S</td>
+                        <td style="padding: 12px;">Satisfaction Score</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">(0.6 × Norm_Frequency) + (0.4 × (1 - Norm_Recency))</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; color: #6B7280; font-size: 0.9rem;">
+                * <strong>Normalization:</strong> F and R are normalized (0-1) against the population max/min to derive the S-Score.
+            </p>
+        </div>
+        {% endif %}
+
+        {% if section == 'Journey' %}
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot" style="background: #9CA3AF; border-color: #9CA3AF;"></div>
+                <div style="font-size: 0.85rem; color: #6B7280;">Joined</div>
+                <div class="stat-card" style="padding: 15px; margin-top: 5px;"><strong>New</strong> Tier Assigned</div>
+            </div>
+            {% for t in transitions %}
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div style="font-size: 0.85rem; color: #6B7280;">{{ t['transition_time'].strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="stat-card" style="padding: 15px; margin-top: 5px;">
+                    Promoted to <span class="text-indigo" style="font-weight: bold;">{{ t['new_tier'] }}</span>
+                    <br><span style="font-size: 0.8rem; color: #6B7280;">AI Confidence: {{ "%.1f"|format(t['confidence']*100) }}%</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="stat-card" style="margin-top: 30px; padding: 25px;">
+            <h3 style="margin-top: 0; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">
+                🗺️ Journey Logic & Transitions
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; box-shadow: none; border-radius: 0;">
+                <thead>
+                    <tr style="background: #f9fafb; text-align: left;">
+                        <th style="padding: 12px; width: 20%;">Component</th>
+                        <th style="padding: 12px; width: 35%;">Definition</th>
+                        <th style="padding: 12px;">Trigger Logic</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Transition Event</td>
+                        <td style="padding: 12px;">A detected shift in customer tier.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            Triggered when Recompute Engine detects New_Tier ≠ Old_Tier.
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">AI Confidence</td>
+                        <td style="padding: 12px;">Model certainty (0-100%).</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            rf_model.predict_proba(current_vector).max()
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Guardrails</td>
+                        <td style="padding: 12px;">Rules preventing erratic shifts.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            1. No multi-tier jumps (e.g., Bronze → Gold).<br>
+                            2. 30-day "grace period" before downgrading.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% if section == 'Simulation' %}
+        <div class="sim-box">
+            <h3>🔮 Predictive Simulator</h3>
+            <p style="color: #6B7280; margin-bottom: 20px;">Adjust behavioral inputs to forecast tier movement.</p>
+            
+            <form action="/admin" method="GET" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: end;">
+                <input type="hidden" name="customer_id" value="{{ current_id }}">
+                <input type="hidden" name="section" value="Simulation">
+                
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Freq Change (ΔF)</label>
+                    <input type="number" name="dF" value="{{ sim_result['inputs']['dF'] if sim_result else 0 }}" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Money Change (ΔM)</label>
+                    <input type="number" name="dM" value="{{ sim_result['inputs']['dM'] if sim_result else 0 }}" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                </div>
+                <button type="submit" class="btn-primary">Run Simulation</button>
+            </form>
+
+            {% if sim_result %}
+            <div class="sim-result">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.9rem; text-transform: uppercase; font-weight: 700;">Predicted Tier</div>
+                        <div style="font-size: 2rem; font-weight: 800;">{{ sim_result['tier'] }}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9rem;">Confidence</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;">{{ sim_result['conf'] }}%</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="stat-card" style="margin-top: 20px; padding: 25px;">
+            <h3 style="margin-top: 0; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">
+                🧮 Simulation Logic
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; box-shadow: none; border-radius: 0;">
+                <thead>
+                    <tr style="background: #f9fafb; text-align: left;">
+                        <th style="padding: 12px; width: 20%;">Parameter</th>
+                        <th style="padding: 12px; width: 35%;">Definition</th>
+                        <th style="padding: 12px;">Calculation Formula</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Δ Frequency</td>
+                        <td style="padding: 12px;">Hypothetical increase in orders.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            F_new = F_current + ΔF
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Δ Monetary</td>
+                        <td style="padding: 12px;">Hypothetical increase in spend.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            M_new = M_current + ΔM
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; font-weight: bold; color: #4F46E5;">Prediction</td>
+                        <td style="padding: 12px;">Real-time ML Inference.</td>
+                        <td style="padding: 12px; font-family: monospace; color: #6B7280;">
+                            Tier = Model.predict([L, R, F_new, M_new, S])
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; color: #6B7280; font-size: 0.9rem;">
+                * <strong>Recency (R)</strong> and <strong>Length (L)</strong> are held constant from the user's current profile unless manually overridden.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

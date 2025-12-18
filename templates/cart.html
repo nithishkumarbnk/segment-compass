@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Shopping Cart</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body class="shop-body">
+    <div class="nav-belt">
+      <div style="font-size: 1.5rem; font-weight: 700">
+        Segment<span style="color: #6366f1">Compass</span>
+      </div>
+      <div style="color: white; font-size: 0.9rem">
+        Hello, {{ display_name }}
+      </div>
+      <a href="/shop" style="color: white">Return to Shop</a>
+    </div>
+
+    <div
+      style="
+        max-width: 1000px;
+        margin: 30px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 15px;
+          margin-bottom: 20px;
+        "
+      >
+        <h1>Shopping Cart</h1>
+        <h2 style="color: #b12704">Subtotal: ₹{{ total }}</h2>
+      </div>
+
+      {% if cart_items %} {% for item in cart_items %}
+      <div
+        style="display: flex; padding: 15px 0; border-bottom: 1px solid #eee"
+      >
+        <img
+          src="{{ item.image }}"
+          style="
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-right: 20px;
+          "
+        />
+        <div style="flex: 1">
+          <h3 style="color: #007185; margin-bottom: 5px">{{ item.name }}</h3>
+          <div style="color: #565959; font-size: 0.9rem">
+            Purchased on: {{ item.date }}
+          </div>
+          <div style="color: green; font-size: 0.85rem; margin-top: 5px">
+            In Stock
+          </div>
+        </div>
+        <div style="font-weight: 700; font-size: 1.2rem">₹{{ item.price }}</div>
+      </div>
+      {% endfor %} {% else %}
+      <p>Your Amazon Cart is empty.</p>
+      {% endif %}
+    </div>
+  </body>
+</html>
