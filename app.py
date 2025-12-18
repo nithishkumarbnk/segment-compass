@@ -55,13 +55,13 @@ def index():
     return render_template("landing.html")
 
 
-# ✅ MISSING ROUTE ADDED HERE
+# ✅ UPDATED: Uses ADMIN_PASS from .env
 @app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
         pwd = request.form.get("password")
-        # Simple password check
-        if pwd == "admin123":
+        # Secure password check
+        if pwd == os.environ.get("ADMIN_PASS"):
             session["role"] = "admin"
             return redirect(url_for("admin_dashboard"))
         else:
@@ -117,14 +117,25 @@ def customer_dashboard():
     cat_filter = request.args.get("category", "All")
 
     if cat_filter == "All":
-        products = list(products_col.find({}))
+        all_products = list(products_col.find({}))
     else:
-        products = list(products_col.find({"category": cat_filter}))
+        all_products = list(products_col.find({"category": cat_filter}))
 
-    # 3. Recommendations
-    recs = [p for p in products if p.get("segment_target") == user["tier"]][:4]
+    # 3. PAGINATION LOGIC (NEW)
+    page = int(request.args.get("page", 1))
+    per_page = 10
+    total_products = len(all_products)
+    total_pages = math.ceil(total_products / per_page)
 
-    # 4. Categories List
+    # Slice the list for the current page
+    start = (page - 1) * per_page
+    end = start + per_page
+    display_products = all_products[start:end]
+
+    # 4. Recommendations
+    recs = [p for p in all_products if p.get("segment_target") == user["tier"]][:4]
+
+    # 5. Categories List
     raw_cats = products_col.distinct("category")
     categories = ["All"] + sorted([c for c in raw_cats if c])
 
@@ -132,11 +143,16 @@ def customer_dashboard():
         "customer_dashboard.html",
         user=user,
         display_name=display_name,
-        products=products,
+        products=display_products,
         recommendations=recs,
         cart_count=cart_count,
         current_category=cat_filter,
         categories=categories,
+        # Pagination Data
+        current_page=page,
+        total_pages=total_pages,
+        total_products=total_products,
+        per_page=per_page,
     )
 
 
